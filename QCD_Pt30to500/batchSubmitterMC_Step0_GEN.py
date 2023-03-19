@@ -37,8 +37,9 @@ if __name__ == "__main__" :
     print(starting_index, ending_index)
     for idx in range(starting_index, ending_index):
 
-        outJobName  = options.out + '/job_' + str(idx) + '.sh'
-        outLogName  = options.out + '/log_' + str(idx) + '.txt'
+        outJobName  = 'sub_190323/job_' + str(idx) + '.sh'
+        outSubName  = 'sub_190323/sub_' + str(idx) + '.sub'
+        outLogName  = 'log_' + str(idx) + '.txt'
         outRootName = options.out + '/Ntuple_' + str(idx) + '.root'
 
         # random seed for MC production should every time we submit a new generation
@@ -62,22 +63,48 @@ if __name__ == "__main__" :
             else:
                 continue
 
-        cmsRun = "cmsRun MC_Step0_GEN_QCD_Pt30to500_cfg.py outputFile=file:"+outRootName
+        cmsRun = "cmsRun MC_Step0_GEN_QCD_Pt30to500_cfg.py outputFile=file:"+'Ntuple_' + str(idx) + '.root'
+        #cmsRun = "cmsRun MC_Step0_GEN_QCD_Pt30to500_cfg.py outputFile=file:"+outRootName
         cmsRun = cmsRun+" maxEvents="+str(options.maxEvents)+" randseed="+str(randseed)+" globalTag="+options.globalTag
         cmsRun = cmsRun+" >& "+outLogName
 
         skimjob = open (outJobName, 'w')
         skimjob.write ('#!/bin/bash\n')
+        skimjob.write ('export WORKDIR=`pwd`\n')
+        skimjob.write ('echo \"the work dir is:\"\n')        
+        skimjob.write ('echo $WORKDIR\n')
         skimjob.write ('export X509_USER_PROXY=~/.t3/proxy.cert\n')
         skimjob.write ('source /cvmfs/cms.cern.ch/cmsset_default.sh\n')
         skimjob.write ('cd %s\n' %os.getcwd())
         skimjob.write ('export SCRAM_ARCH=slc6_amd64_gcc472\n')
         skimjob.write ('eval `scram r -sh`\n')
-        skimjob.write ('cd %s\n' %os.getcwd())
+        skimjob.write ('cd $WORKDIR\n')
+        skimjob.write ('cp /afs/cern.ch/work/d/davignon/private/MCGenForL1NNCalib/CMSSW_12_4_13/src/MCGeneration_L1TPCalibration/QCD_Pt30to500/*.py ./\n')
+        #skimjob.write ('cd %s\n' %os.getcwd())
+        skimjob.write ('export WORKDIRNOW=`pwd`\n')
+        skimjob.write ('echo \"the work dir is now:\"\n')                
+        skimjob.write ('echo $WORKDIRNOW\n')
         skimjob.write (cmsRun+'\n')
+        skimjob.write ('xrdcp Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root root://eosuser.cern.ch//eos/user/d/davignon/NtuplesForL1TPCalib/QCD_30_500/GEN/Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root\n')
+        skimjob.write ('ls -ltrh\n')
+        skimjob.write ('rm Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root')
         skimjob.close ()
 
         os.system ('chmod u+rwx ' + outJobName)
-        command = ('/home/llr/cms/evernazza/t3submit -'+options.queue+' \'' + outJobName +"\'")
-        print(command)
-        if not options.no_exec: os.system (command)
+
+        subjob = open (outSubName, 'w')
+        subjob.write ('executable              = job_' + str(idx) + '.sh\n')
+        subjob.write ('arguments               = \n')
+        subjob.write ('output                  = output/welcome.$(ClusterId).$(ProcId).out\n')
+        #subjob.write ('output_destination      = root://eosuser.cern.ch//eos/user/d/davignon/NtuplesForL1TPCalib/QCD_30_500/GEN/\n')
+        subjob.write ('error                   = error/welcome.$(ClusterId).$(ProcId).err\n')
+        subjob.write ('log                     = log/welcome.$(ClusterId).log\n')
+        subjob.write ('+JobFlavour = \"'+options.queue+'\"\n')
+        subjob.write ('queue')
+        subjob.close ()
+
+        os.system ('(cd sub_190323 ; condor_submit sub_' + str(idx) + '.sub'+' )')
+        
+        #command = ('/home/llr/cms/evernazza/t3submit -'+options.queue+' \'' + outJobName +"\'")
+        #print(command)
+        #if not options.no_exec: os.system (command)
