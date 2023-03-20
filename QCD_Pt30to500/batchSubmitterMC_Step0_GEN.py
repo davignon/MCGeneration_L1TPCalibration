@@ -85,7 +85,7 @@ if __name__ == "__main__" :
         skimjob.write ('echo \"the work dir is now:\"\n')                
         skimjob.write ('echo $WORKDIRNOW\n')
         skimjob.write (cmsRun+'\n')
-        skimjob.write ('xrdcp Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root root://eosuser.cern.ch//eos/user/d/davignon/NtuplesForL1TPCalib/QCD_30_500/GEN/Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root\n')
+        skimjob.write ('xrdcp Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root root://eosuser.cern.ch/'+options.out+'/Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root\n')
         skimjob.write ('ls -ltrh\n')
         skimjob.write ('rm Ntuple_' + str(idx) + '_numEvent'+str(options.maxEvents)+'.root')
         skimjob.close ()
